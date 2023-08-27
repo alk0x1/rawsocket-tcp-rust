@@ -22,7 +22,7 @@
         - [] Reenviar os dados recebido de volta.
 
 ## Cliente 
-- [] Fazer a conexão para o endereço da máquina e porta escolhida para o servidor
+- [X] Fazer a conexão para o endereço da máquina e porta escolhida para o servidor
 - [] Enviar uma das opções tratadas no servidor (Requisição), escolhida pelo usuário.
 - [] Receber os dados do servidor: (Resposta)
 - “Sair”
