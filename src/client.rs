@@ -1,14 +1,12 @@
-use std::{net::{IpAddr, Ipv4Addr, SocketAddr}, str::FromStr};
+use std::{net::{IpAddr, Ipv4Addr, SocketAddr}, str::FromStr, io::{Write, stdout}, mem::MaybeUninit};
+use inquire::{Text, validator::Validation};
 use socket2::{Socket, Domain, Type, SockAddr};
 
 fn main() {
-
-  handle_user_input();
+  handle_user_input_connection();
 }
 
-fn handle_user_input() {
-  use inquire::{Text, validator::{StringValidator, Validation}};
-                                                                      // if let Ok(_) = Ipv4Addr::from_str(input)
+fn handle_user_input_connection() {
   let ip_validator = |input: &str| if let Ok(_) = Ipv4Addr::from_str(input) {
     Ok(Validation::Valid)
   } else {
@@ -25,7 +23,7 @@ fn handle_user_input() {
     } else {
         Ok(Validation::Invalid("Invalid port format.".into()))
     }
-};
+  };
 
   let ip_status = Text::new("Ip address:").with_validator(ip_validator).prompt();
 
@@ -43,9 +41,6 @@ fn handle_user_input() {
     },
     Err(err) => println!("Error on validating ip: {}", err),
   }
-
-  // let options: Vec<&str> = vec!["Banana", "Apple", "Strawberry", "Grapes"];
-  // let opt_answ: Result<&str, InquireError> = Select::new("",options).prompt();
 }
 
 fn handle_connection(ip_string: String, port_string: String) {
@@ -56,11 +51,49 @@ fn handle_connection(ip_string: String, port_string: String) {
           let address = SocketAddr::new(IpAddr::V4(ipv4_addr), port);
           let server_socket_addr = SockAddr::from(address);
           let socket = Socket::new(Domain::IPV4, Type::STREAM, None).unwrap();
-          let connection = socket.connect(&server_socket_addr.into());
+          match socket.connect(&server_socket_addr.into()) {
+            Ok(_) => {
+              println!("Connected!");
+              let mut buffer = [MaybeUninit::uninit(); 1024];
+              
+              loop {
+                let stdin = std::io::stdin();
+                let mut input = String::new();
+                print!("Enter a message: ");
+                stdout().flush().unwrap();
+                stdin.read_line(&mut input).expect("Failed to read line");
+                socket.send(input.as_bytes()).expect("Failed to send data");
 
-          match connection {
-            Ok(connection) => {
-              println!("connected to server: {:?}", connection);
+                let (size, _) =  match socket.recv_from(&mut buffer) {
+                  Ok(s) => s,
+                  Err(e) => {
+                    eprintln!("Failed to receive data from server: {}", e);
+                    return;
+                  }
+                };
+
+                let received_data = unsafe {
+                  std::slice::from_raw_parts(buffer.as_ptr() as *const u8, size)
+                };
+                
+                let received_text = match std::str::from_utf8(received_data) {
+                  Ok(s) => s,
+                  Err(e) => {
+                    eprintln!("Failed to format data: {}", e);
+                    return;
+                  }
+                };
+                
+                println!("Resposta: {}", received_text);
+
+                if received_text == "Conexão finalizada." {
+                  break;
+                }
+                else if received_text == "" {
+
+                }
+              }
+
             } 
             Err(err) => {
               println!("Error connecting to server: {}", err);
@@ -76,4 +109,19 @@ fn handle_connection(ip_string: String, port_string: String) {
       println!("Error on parse ip: {:?}", err);
     }
   }
+}
+
+fn handle_file() {
+   // let mut file = File::create("received_file.txt")?;
+  // let mut buffer = [0; 1024];
+
+  // loop {
+  //   let bytes_received = socket.recv(&mut buffer)?;
+  //   if bytes_received == 0 {
+  //       break; // End of file transfer
+  //   }
+  //   file.write_all(&buffer[..bytes_received])?;
+  // }
+
+  // println!("File received successfully.");
 }
