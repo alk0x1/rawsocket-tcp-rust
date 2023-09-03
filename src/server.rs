@@ -55,14 +55,16 @@ fn handle_connection(s: Socket) {
         
         match File::open(path) {
           Ok(mut f) => {
-            let mut f_buffer = [0u8; 1024]; // Adjust buffer size as needed.
+            let mut f_buffer = [0u8; 1024];
             loop {
               let bytes_read: usize = f.read(&mut f_buffer).unwrap();
               if bytes_read == 0 {
-                break; // End of file reached.
+                break; 
               }
-      
-              s.send(&f_buffer[0..bytes_read]).unwrap();
+              let mut data_with_prefix = Vec::from("File:");
+              data_with_prefix.extend_from_slice(&f_buffer[0..bytes_read]);
+
+              s.send(&data_with_prefix).unwrap();
             }
           },
           Err(err) => {

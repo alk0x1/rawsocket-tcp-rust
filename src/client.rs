@@ -1,4 +1,4 @@
-use std::{net::{IpAddr, Ipv4Addr, SocketAddr}, str::FromStr, io::{Write, stdout}, mem::MaybeUninit};
+use std::{net::{IpAddr, Ipv4Addr, SocketAddr}, str::FromStr, io::{Write, stdout}, mem::MaybeUninit, fs::File};
 use inquire::{Text, validator::Validation};
 use socket2::{Socket, Domain, Type, SockAddr};
 
@@ -89,8 +89,19 @@ fn handle_connection(ip_string: String, port_string: String) {
                 if received_text == "Conexão finalizada." {
                   break;
                 }
-                else if received_text == "" {
-
+                else if received_text.starts_with("File:") {
+                  let file_content = &received_text[5..];
+                  match File::create("src/receivedFiles/saved_file.txt") {
+                    Ok(mut f) => {
+                      match f.write_all(file_content.as_bytes()) {   
+                        Ok(_) => println!("File received and saved successfully"),
+                        Err(err) => eprintln!("Error on write bytes: {}", err)
+                      };
+                    }
+                    Err(e) => {
+                      eprintln!("Error on create file: {}", e);
+                    }
+                  }
                 }
               }
 
