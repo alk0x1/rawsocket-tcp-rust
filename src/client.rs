@@ -54,7 +54,7 @@ fn handle_connection(ip_string: String, port_string: String) {
           match socket.connect(&server_socket_addr.into()) {
             Ok(_) => {
               println!("Connected!");
-              let mut buffer = [MaybeUninit::uninit(); 1024];
+              let buffer = [MaybeUninit::uninit(); 1024];
               
               loop {
                 let stdin = std::io::stdin();
@@ -64,34 +64,24 @@ fn handle_connection(ip_string: String, port_string: String) {
                 stdin.read_line(&mut input).expect("Failed to read line");
                 socket.send(input.as_bytes()).expect("Failed to send data");
 
-                let (size, _) =  match socket.recv_from(&mut buffer) {
-                  Ok(s) => s,
-                  Err(e) => {
-                    eprintln!("Failed to receive data from server: {}", e);
-                    return;
-                  }
-                };
-
-                let received_data = unsafe {
-                  std::slice::from_raw_parts(buffer.as_ptr() as *const u8, size)
-                };
-                
-                let received_text = match std::str::from_utf8(received_data) {
-                  Ok(s) => s,
-                  Err(e) => {
-                    eprintln!("Failed to format data: {}", e);
-                    return;
-                  }
-                };
+                let (_, received_text) = handle_server_data(&socket, buffer);
                 
                 println!("Resposta: {}", received_text);
 
                 if received_text == "Conexão finalizada." {
                   break;
                 }
-                else if received_text.starts_with("File:") {
-                  let file_content = &received_text[5..];
-                  match File::create("src/receivedFiles/saved_file.txt") {
+                else if received_text.starts_with("Starting file transference...") {
+                  let (_, filename) = handle_server_data(&socket, buffer);
+                  println!("Received Filename: {}", filename);
+                  let (_, size) = handle_server_data(&socket, buffer);
+                  println!("Received Size: {}", size);
+                  let (_, crc) = handle_server_data(&socket, buffer);
+                  println!("Received CRC: {}", crc);
+                  let (_, file_content) = handle_server_data(&socket, buffer);
+                  println!("Received Content: {}", file_content);
+
+                  match File::create("src/receivedFiles/".to_owned() + filename) {
                     Ok(mut f) => {
                       match f.write_all(file_content.as_bytes()) {   
                         Ok(_) => println!("File received and saved successfully"),
@@ -103,8 +93,8 @@ fn handle_connection(ip_string: String, port_string: String) {
                     }
                   }
                 }
-              }
 
+              }
             } 
             Err(err) => {
               println!("Error connecting to server: {}", err);
@@ -120,6 +110,30 @@ fn handle_connection(ip_string: String, port_string: String) {
       println!("Error on parse ip: {:?}", err);
     }
   }
+}
+
+fn handle_server_data(s: &Socket, mut buffer: [MaybeUninit<u8>; 1024]) -> (&Socket, &'static str) {
+  let (size, _) =  match s.recv_from(&mut buffer) {
+    Ok(s) => s,
+    Err(e) => {
+      eprintln!("Failed to receive data from server: {}", e);
+      return (s, "0");
+    }
+  };
+
+  let received_data = unsafe {
+    std::slice::from_raw_parts(buffer.as_ptr() as *const u8, size)
+  };
+  
+  let received_text = match std::str::from_utf8(received_data) {
+    Ok(s) => s,
+    Err(e) => {
+      eprintln!("Failed to format data: {}", e);
+      "error - received_text"
+    }
+  };
+
+  (s, received_text)
 }
 
 fn handle_file() {
