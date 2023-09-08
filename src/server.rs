@@ -1,7 +1,6 @@
-use std::{net::SocketAddr, mem::MaybeUninit, thread, sync::{atomic::{AtomicBool, Ordering}, Arc}, fs::{File, metadata}, io::Read};
+use std::{net::SocketAddr, mem::MaybeUninit, thread, sync::{atomic::{AtomicBool, Ordering}, Arc}, fs::{File, metadata}, io::{Read, Seek}};
 use socket2::{Socket, Domain, Type};
-use sha2::Sha256;
-use digest::Digest;
+use tcp_connection::calculate_hash;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
   // 1. creation
@@ -51,14 +50,17 @@ fn handle_connection(s: Socket) {
         let (_, received_text) = handle_client_data(&s, buffer);
         
         let file_name = received_text;
-        let path = &format!("{}{}", "src/files/", file_name);
+        let path = &format!("{}{}", "src/serverFiles/", file_name);
         
+        let crc = calculate_hash(&mut File::open(path).unwrap());
+
         match File::open(path) {
           Ok(mut f) => {
             let mut f_buffer = [0u8; 1024];
+            let mut bytes_read;
+            
             loop {
-              let bytes_read: usize = f.read(&mut f_buffer).unwrap();
-
+              bytes_read = f.read(&mut f_buffer).unwrap();
               if bytes_read == 0 {
                 break; 
               }
@@ -70,12 +72,6 @@ fn handle_connection(s: Socket) {
                   "error".to_string()
                 } 
               };
-              
-              let crc = calculate_hash(&mut f);
-              // let status = ;
-              // let mut data_with_prefix = Vec::from("File:");
-              // data_with_prefix.extend_from_slice(&f_buffer[0..bytes_read]);
-              
               match s.send("Starting file transference...".as_bytes()) {
                 Ok(_) => {
                   println!("Starting file transference");
@@ -100,9 +96,9 @@ fn handle_connection(s: Socket) {
                 },
                 Err(err) => eprintln!("Error Couldn't send the crc: {}", err)
               }
-              match s.send(&f_buffer[0..bytes_read]) {
+              match s.send(&f_buffer[0..bytes_read]) { 
                 Ok(_) => {
-                  println!("Data sended successfully");
+                  println!("Data sended successfully {:?}", &f_buffer[0..bytes_read]);
                 },
                 Err(err) => eprintln!("Error Couldn't send the data: {}", err)
               }
@@ -125,41 +121,6 @@ fn handle_connection(s: Socket) {
   
 }
 
-
-// fn handle_data(data: &str) {
-//   let response = match data {
-//     "Sair" => "fecha conexão",
-//     "Arquivo" => handle_file("path"),
-//     s => s
-//   };
-// }
-
-// fn handle_file(path: &str) {
-
-//   println!("Hash: {}", calculate_hash(file));
-
-// }
-
-fn calculate_hash(mut file: &File) -> String {
-  let mut hasher = Sha256::new();
-  let mut buffer: [u8; 1024] = [0; 1024]; // Use a buffer for reading
-  loop {
-    let bytes_read = file.read(&mut buffer).unwrap();
-    if bytes_read == 0 {
-        break; // End of file
-    }
-    hasher.update(&buffer[..bytes_read]);
-  }
-  let hash_result = hasher.finalize();
-  let hash_hex_string: String = hash_result
-    .iter()
-    .map(|byte| format!("{:02x}", byte))
-    .collect();
-
-  println!("SHA-256 Hash: {}", hash_hex_string);
-
-  hash_hex_string
-}
 
 fn handle_client_data(s: &Socket, mut buffer: [MaybeUninit<u8>; 1024]) -> (&Socket, &'static str) {
   let (size, _) =  match s.recv_from(&mut buffer) {

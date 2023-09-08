@@ -1,6 +1,7 @@
-use std::{net::{IpAddr, Ipv4Addr, SocketAddr}, str::FromStr, io::{Write, stdout}, mem::MaybeUninit, fs::File};
+use std::{net::{IpAddr, Ipv4Addr, SocketAddr}, str::FromStr, io::{Write, stdout, Seek}, mem::MaybeUninit, fs::File};
 use inquire::{Text, validator::Validation};
 use socket2::{Socket, Domain, Type, SockAddr};
+use tcp_connection::calculate_hash;
 
 fn main() {
   handle_user_input_connection();
@@ -78,13 +79,33 @@ fn handle_connection(ip_string: String, port_string: String) {
                   println!("Received Size: {}", size);
                   let (_, crc) = handle_server_data(&socket, buffer);
                   println!("Received CRC: {}", crc);
-                  let (_, file_content) = handle_server_data(&socket, buffer);
-                  println!("Received Content: {}", file_content);
+                  let (_, file_content) = handle_file_bytes(&socket, buffer);
+                  println!("Received Content: {:?}", file_content);
 
-                  match File::create("src/receivedFiles/".to_owned() + filename) {
+                  let path = &format!("{}{}", "src/clientFiles/", filename);
+                  println!("File received and saved successfully");
+                  let file_for_hash = File::open("src/serverFiles/example.exe").expect("Failed to open file for hash calculation");
+
+                  if crc == calculate_hash(&file_for_hash) {
+                    println!("Valid hash");
+                  }
+                  else {
+                    println!("Invalid hash");
+                  }
+                  match File::create(path) {
                     Ok(mut f) => {
-                      match f.write_all(file_content.as_bytes()) {   
-                        Ok(_) => println!("File received and saved successfully"),
+                      match f.write_all(file_content) {   
+                        Ok(_) => {
+                          println!("File received and saved successfully");
+                          let file_for_hash = File::open("src/serverFiles/example.exe").expect("Failed to open file for hash calculation");
+
+                          if crc == calculate_hash(&file_for_hash) {
+                            println!("Valid hash");
+                          }
+                          else {
+                            println!("Invalid hash");
+                          }
+                        },
                         Err(err) => eprintln!("Error on write bytes: {}", err)
                       };
                     }
@@ -136,17 +157,12 @@ fn handle_server_data(s: &Socket, mut buffer: [MaybeUninit<u8>; 1024]) -> (&Sock
   (s, received_text)
 }
 
-fn handle_file() {
-   // let mut file = File::create("received_file.txt")?;
-  // let mut buffer = [0; 1024];
+fn handle_file_bytes(s: &Socket, mut buffer: [MaybeUninit<u8>; 1024]) -> (&Socket, &[u8]) {
+  let (size, _) =  s.recv_from(&mut buffer).expect("Failed to receive file bytes from the server");
+  
+  let data = unsafe {
+    std::slice::from_raw_parts(buffer.as_ptr() as *const u8, size)
+  };
 
-  // loop {
-  //   let bytes_received = socket.recv(&mut buffer)?;
-  //   if bytes_received == 0 {
-  //       break; // End of file transfer
-  //   }
-  //   file.write_all(&buffer[..bytes_received])?;
-  // }
-
-  // println!("File received successfully.");
+  (s, data)
 }

@@ -30,8 +30,8 @@
   - [X] Finalizar a thread.
 - “Arquivo”:
   - [] Receber os dados de acordo com a ordem escolhida. (Acabou de criar um protocolo!)
-  - [] Abrir o arquivo.
-  - [] Verificar o Hash
+  - [X] Abrir o arquivo.
+  - [X] Verificar o Hash
 - Senão:
  - [X] Imprimir os dados recebidos com “Resposta:” antes dos dados.
 
@@ -47,8 +47,8 @@ No cliente:
     - [X] Pedido de arquivo.
     - [] Receber as resposta do servidor e fazer o esperado.
     - [X] Texto. (Imprimir)
-    - [] Arquivo. (verificar e salvar)
-    - [] Fazer verificação de integridade do arquivo recebido (Verificar se Hash é igual).
+    - [X] Arquivo. (verificar e salvar)
+    - [X] Fazer verificação de integridade do arquivo recebido (Verificar se Hash é igual).
 No Servidor:
 - [X] Receber requisições do Cliente
 - [] Tratar corretamente as requisições e fazer o esperado.
