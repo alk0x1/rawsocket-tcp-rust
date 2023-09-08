@@ -1,4 +1,4 @@
-use inquire::{Text, validator::{StringValidator, Validation}};
+use inquire::{Text, validator::Validation};
 
 fn main() {
     let validator = |input: &str| if input.chars().count() > 140 {
@@ -12,7 +12,7 @@ fn main() {
         .prompt();
 
     match status {
-        Ok(status) => println!("Your status is being published..."),
+        Ok(_) => println!("Your status is being published..."),
         Err(err) => println!("Error while publishing your status: {}", err),
     }
 }

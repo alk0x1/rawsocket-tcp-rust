@@ -8,10 +8,10 @@
       - [X] “Sair”
           se sim: fechar a conexão.
           Finalizar a thread.
-      - [] “Arquivo”:
+      - [X] “Arquivo”:
         - [X] Abrir o arquivo.
         - [X] Calcular o Hash do arquivo com SHA (Procure um exemplo de uso do SHA)
-          - [] Escolher a ordem para enviar (se necessário)
+          - [X] Escolher a ordem para enviar (se necessário)
               Nome do arquivo
               Tamanho
               CRC
@@ -29,7 +29,7 @@
   - [X] Fechar a conexão.
   - [X] Finalizar a thread.
 - “Arquivo”:
-  - [] Receber os dados de acordo com a ordem escolhida. (Acabou de criar um protocolo!)
+  - [X] Receber os dados de acordo com a ordem escolhida. (Acabou de criar um protocolo!)
   - [X] Abrir o arquivo.
   - [X] Verificar o Hash
 - Senão:
@@ -37,20 +37,20 @@
 
 
 ## O trabalho deve:
-- [] Usar Sockets TCP Multi-thread
-  - [] Cliente e Servidor
+- [X] Usar Sockets TCP Multi-thread
+  - [X] Cliente e Servidor
 
 No cliente:
   - [X] O usuário escolher a opção para se comunicar com o servidor.
   - [X] Enviar as requisições para o servidor.
     - [X] Texto.
     - [X] Pedido de arquivo.
-    - [] Receber as resposta do servidor e fazer o esperado.
+    - [X] Receber as resposta do servidor e fazer o esperado.
     - [X] Texto. (Imprimir)
     - [X] Arquivo. (verificar e salvar)
     - [X] Fazer verificação de integridade do arquivo recebido (Verificar se Hash é igual).
 No Servidor:
 - [X] Receber requisições do Cliente
-- [] Tratar corretamente as requisições e fazer o esperado.
+- [X] Tratar corretamente as requisições e fazer o esperado.
   - [X] Texto.
-  - [] Pedido de arquivo.
+  - [X] Pedido de arquivo.

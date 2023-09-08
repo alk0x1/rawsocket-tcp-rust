@@ -1,4 +1,4 @@
-use std::{net::SocketAddr, mem::MaybeUninit, thread, sync::{atomic::{AtomicBool, Ordering}, Arc}, fs::{File, metadata}, io::{Read, Seek}};
+use std::{net::SocketAddr, mem::MaybeUninit, thread, sync::{atomic::{AtomicBool, Ordering}, Arc}, fs::{File, metadata}, io::Read};
 use socket2::{Socket, Domain, Type};
 use tcp_connection::calculate_hash;
 
@@ -58,6 +58,7 @@ fn handle_connection(s: Socket) {
           Ok(mut f) => {
             let mut f_buffer = [0u8; 1024];
             let mut bytes_read;
+            let mut status = "ok";
             
             loop {
               bytes_read = f.read(&mut f_buffer).unwrap();
@@ -76,31 +77,54 @@ fn handle_connection(s: Socket) {
                 Ok(_) => {
                   println!("Starting file transference");
                 },
-                Err(err) => eprintln!("Error Couldn't send the filename: {}", err)
+                Err(err) => {
+                  eprintln!("Error Couldn't send the filename: {}", err);
+                  status = "nok";
+                }
               }
               match s.send(file_name.as_bytes()) {
                 Ok(_) => {
                   println!("Filename {} sended successfully", file_name);
                 },
-                Err(err) => eprintln!("Error Couldn't send the filename: {}", err)
+                Err(err) => {
+                  eprintln!("Error Couldn't send the filename: {}", err);
+                  status = "nok";
+                }
               }
               match s.send(size.as_bytes()) {
                 Ok(_) => {
                   println!("Size {} sended successfully", size);
                 },
-                Err(err) => eprintln!("Error Couldn't send the size: {}", err)
+                Err(err) => {
+                  eprintln!("Error Couldn't send the size: {}", err);
+                  status = "nok";
+                }
               }
               match s.send(crc.as_bytes().as_ref()) {
                 Ok(_) => {
                   println!("Crc {} sended successfully", crc);
                 },
-                Err(err) => eprintln!("Error Couldn't send the crc: {}", err)
+                Err(err) => {
+                  eprintln!("Error Couldn't send the crc: {}", err);
+                  status = "nok";
+                }
               }
               match s.send(&f_buffer[0..bytes_read]) { 
                 Ok(_) => {
                   println!("Data sended successfully {:?}", &f_buffer[0..bytes_read]);
                 },
-                Err(err) => eprintln!("Error Couldn't send the data: {}", err)
+                Err(err) => {
+                  eprintln!("Error Couldn't send the data: {}", err);
+                  status = "nok";
+                }
+              }
+              match s.send(status.as_bytes()) {
+                Ok(_) => { 
+                  println!("Status: {}", status);
+                }
+                Err(err) => {
+                  println!("Err: {}", err);
+                }
               }
             }
           },

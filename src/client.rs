@@ -1,4 +1,4 @@
-use std::{net::{IpAddr, Ipv4Addr, SocketAddr}, str::FromStr, io::{Write, stdout, Seek}, mem::MaybeUninit, fs::File};
+use std::{net::{IpAddr, Ipv4Addr, SocketAddr}, str::FromStr, io::{Write, stdout}, mem::MaybeUninit, fs::File, thread};
 use inquire::{Text, validator::Validation};
 use socket2::{Socket, Domain, Type, SockAddr};
 use tcp_connection::calculate_hash;
@@ -34,8 +34,12 @@ fn handle_user_input_connection() {
       match port_status {
         Ok(port) => {
           println!("Trying to connect in {}:{} ...", ip, port);
-          handle_connection(ip, port);
 
+          let handle = thread::spawn(move || {
+            handle_connection(ip, port);
+          });
+          
+          handle.join().unwrap();
         }
         Err(err) => println!("Error on validating port {}", err),
       }
@@ -84,20 +88,16 @@ fn handle_connection(ip_string: String, port_string: String) {
 
                   let path = &format!("{}{}", "src/clientFiles/", filename);
                   println!("File received and saved successfully");
-                  let file_for_hash = File::open("src/serverFiles/example.exe").expect("Failed to open file for hash calculation");
 
-                  if crc == calculate_hash(&file_for_hash) {
-                    println!("Valid hash");
-                  }
-                  else {
-                    println!("Invalid hash");
-                  }
+                  let (_, status) = handle_server_data(&socket, buffer);
+                  println!("Received Status: {:?}", status);
+
                   match File::create(path) {
                     Ok(mut f) => {
                       match f.write_all(file_content) {   
                         Ok(_) => {
                           println!("File received and saved successfully");
-                          let file_for_hash = File::open("src/serverFiles/example.exe").expect("Failed to open file for hash calculation");
+                          let file_for_hash = File::open(path).expect("Failed to open file for hash calculation");
 
                           if crc == calculate_hash(&file_for_hash) {
                             println!("Valid hash");
@@ -114,7 +114,6 @@ fn handle_connection(ip_string: String, port_string: String) {
                     }
                   }
                 }
-
               }
             } 
             Err(err) => {
