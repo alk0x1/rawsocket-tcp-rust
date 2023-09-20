@@ -121,9 +121,11 @@ fn handle_connection(s: Socket) {
               match s.send(status.as_bytes()) {
                 Ok(_) => { 
                   println!("Status: {}", status);
+                  break;
                 }
                 Err(err) => {
                   println!("Err: {}", err);
+                  break;
                 }
               }
             }
